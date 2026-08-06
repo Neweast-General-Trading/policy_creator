@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  @apply bg-white text-slate-900;
+}
+
+@layer components {
+  .app-page {
+    @apply bg-gradient-to-br from-slate-50 via-white to-emerald-50/40;
+  }
+
+  .app-surface {
+    @apply border border-slate-200 bg-white;
+  }
+
+  .app-panel {
+    @apply border border-slate-200 bg-slate-50/70;
+  }
+
+  .no-copy {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  .policy-content h1,
+  .policy-content h2,
+  .policy-content h3 {
+    @apply font-semibold text-slate-900;
+  }
+
+  .policy-content p {
+    @apply mb-3 leading-relaxed text-slate-700;
+  }
+
+  .policy-content ul {
+    @apply mb-3 list-disc ps-6;
+  }
+
+  .policy-content ol {
+    @apply mb-3 list-decimal ps-6;
+  }
+
+  .policy-content strong {
+    @apply font-bold;
+  }
+
+  .policy-content em {
+    @apply italic;
+  }
+
+  .policy-content u {
+    @apply underline;
+  }
+
+  .ProseMirror {
+    @apply min-h-[180px] rounded-md border border-slate-200 bg-white px-4 py-3 outline-none;
+  }
+
+  .ProseMirror:focus {
+    @apply ring-2 ring-red-500/20 border-red-300;
+  }
+
+  .ProseMirror p {
+    @apply mb-2;
+  }
+
+  .ProseMirror h1,
+  .policy-content h1 {
+    @apply mb-3 text-2xl font-bold;
+  }
+
+  .ProseMirror h2,
+  .policy-content h2 {
+    @apply mb-2 text-xl font-semibold;
+  }
+
+  .ProseMirror h3,
+  .policy-content h3 {
+    @apply mb-2 text-lg font-semibold;
+  }
+
+  .ProseMirror ul,
+  .ProseMirror ol {
+    @apply mb-2 ps-6;
+  }
+
+  .ProseMirror ul {
+    @apply list-disc;
+  }
+
+  .ProseMirror ol {
+    @apply list-decimal;
+  }
+
+  .ProseMirror a,
+  .policy-content a {
+    @apply text-red-600 underline;
+  }
+
+  .ProseMirror img,
+  .policy-content img {
+    @apply my-3 max-w-full rounded-md;
+  }
+
+  .policy-document-view .policy-content h1 {
+    @apply mb-2 text-sm font-bold;
+  }
+
+  .policy-document-view .policy-content h2 {
+    @apply mb-1.5 text-sm font-semibold;
+  }
+
+  .policy-document-view .policy-content h3 {
+    @apply mb-1.5 text-xs font-semibold;
+  }
+
+  .policy-document-view .policy-content p {
+    @apply mb-2 text-[13px] leading-relaxed;
+  }
+
+  .policy-document-view .policy-content ul,
+  .policy-document-view .policy-content ol {
+    @apply mb-2 text-[13px];
+  }
+
+  .policy-document-view .policy-content img {
+    @apply my-2 max-h-12 max-w-[160px] rounded object-contain;
+  }
+
+  .policy-document-view .policy-content table {
+    @apply my-2 text-xs;
+  }
+
+  .ProseMirror table,
+  .policy-content table {
+    @apply my-3 w-full border-collapse overflow-hidden rounded-md border border-slate-200;
+  }
+
+  .ProseMirror th,
+  .ProseMirror td,
+  .policy-content th,
+  .policy-content td {
+    @apply border border-slate-200 px-3 py-2 text-left align-top;
+  }
+
+  .ProseMirror th,
+  .policy-content th {
+    @apply bg-slate-50 font-semibold;
+  }
+
+  .ProseMirror .is-editor-empty:first-child::before,
+  .ProseMirror p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-slate-400;
+    content: attr(data-placeholder);
+  }
+
+  @keyframes sim-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35);
+    }
+    50% {
+      box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+  }
+
+  .sim-node-current {
+    animation: sim-pulse 2.2s ease-in-out infinite;
+  }
+}

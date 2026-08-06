@@ -1,0 +1,18 @@
+node_modules/
+server/node_modules/
+dist/
+dist-viewer/
+server/dist/
+
+# Secrets & local env
+server/.env
+.env.local
+.env.*.local
+
+# Runtime policy data (use policies.json.example)
+server/data/policies.json
+server/data/*.backup*
+
+# Logs & OS
+*.log
+.DS_Store

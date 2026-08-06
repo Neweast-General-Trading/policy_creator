@@ -1,0 +1,252 @@
+[
+  {
+    "id": "c7a8c8fb-1b52-4cef-ae9a-c08f12985e2c",
+    "companyCode": "BI_NEGT",
+    "companyName": "New East General Trading FZCO",
+    "companies": [
+      {
+        "companyCode": "BI_NEGT",
+        "companyName": "New East General Trading FZCO"
+      },
+      {
+        "companyCode": "BI_NEGTLLC",
+        "companyName": "New East General Trading LLC"
+      },
+      {
+        "companyCode": "BI_NEGT_KSAPARTS",
+        "companyName": "New East - KSA PARTS"
+      }
+    ],
+    "sourceDepartmentCode": 22,
+    "sourceDepartmentName": "Warehouse Operations",
+    "submitterLevelMode": "one",
+    "hodSkipInternalLevels": true,
+    "stages": [
+      {
+        "departmentCode": 4,
+        "departmentName": "Internal Audit, Risk & Compliance",
+        "levels": [
+          {
+            "audience": "managers_only",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "AUD01",
+                "email": "thanzil@neweast.co",
+                "name": "Thanzil"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "createdByEmail": "Sakour@neweast.com",
+    "createdByName": "Jad Sakour",
+    "createdAt": "2026-07-15T05:04:32.666Z",
+    "updatedAt": "2026-07-15T05:04:32.666Z"
+  },
+  {
+    "id": "daad25f1-6426-40f3-a156-ede59c503a15",
+    "companyCode": "BI_NEGT",
+    "companyName": "New East General Trading FZCO",
+    "companies": [
+      {
+        "companyCode": "BI_NEGT",
+        "companyName": "New East General Trading FZCO"
+      }
+    ],
+    "sourceDepartmentCode": 2,
+    "sourceDepartmentName": "Finance",
+    "submitterLevelMode": "all",
+    "hodSkipInternalLevels": true,
+    "stages": [
+      {
+        "departmentCode": 4,
+        "departmentName": "Internal Audit, Risk & Compliance",
+        "levels": [
+          {
+            "audience": "managers_only",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "AUD01",
+                "email": "thanzil@neweast.co",
+                "name": "Thanzil"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "departmentCode": 14,
+        "departmentName": "Board",
+        "levels": [
+          {
+            "audience": "tier",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "NEGT03",
+                "email": "henry@neweast.co",
+                "name": "Henry Shaaya"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "createdByEmail": "Sakour@neweast.com",
+    "createdByName": "Jad Sakour",
+    "createdAt": "2026-06-30T11:23:44.818Z",
+    "updatedAt": "2026-06-30T11:23:44.818Z"
+  },
+  {
+    "id": "20ae85f6-1586-428d-bf85-6d7ae8e47478",
+    "companyCode": "BI_NEGT",
+    "companyName": "New East General Trading FZCO",
+    "companies": [
+      {
+        "companyCode": "BI_NEGT",
+        "companyName": "New East General Trading FZCO"
+      }
+    ],
+    "sourceDepartmentCode": 3,
+    "sourceDepartmentName": "HR & Administration",
+    "submitterLevelMode": "all",
+    "hodSkipInternalLevels": false,
+    "stages": [
+      {
+        "departmentCode": 4,
+        "departmentName": "Internal Audit, Risk & Compliance",
+        "levels": [
+          {
+            "audience": "staff_only",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "AUD05",
+                "email": "shameer.np@neweast.com",
+                "name": "Shameer Nalu Purappattil"
+              }
+            ]
+          },
+          {
+            "audience": "managers_only",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "AUD01",
+                "email": "thanzil@neweast.co",
+                "name": "Thanzil"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "createdByEmail": "Rahul@neweast.co",
+    "createdByName": "Rahul VR",
+    "createdAt": "2026-06-30T08:20:22.663Z",
+    "updatedAt": "2026-06-30T09:05:05.772Z"
+  },
+  {
+    "id": "3c4099ff-4850-49ac-b8cc-674969db9f49",
+    "companyCode": "BI_NEGT",
+    "companyName": "New East General Trading FZCO",
+    "companies": [
+      {
+        "companyCode": "BI_NEGT",
+        "companyName": "New East General Trading FZCO"
+      }
+    ],
+    "sourceDepartmentCode": 7,
+    "sourceDepartmentName": "IT",
+    "submitterLevelMode": "top",
+    "hodSkipInternalLevels": false,
+    "stages": [
+      {
+        "departmentCode": 4,
+        "departmentName": "Internal Audit, Risk & Compliance",
+        "levels": [
+          {
+            "audience": "staff_only",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "AUD05",
+                "email": "shameer.np@neweast.com",
+                "name": "Shameer Nalu Purappattil"
+              }
+            ]
+          },
+          {
+            "audience": "managers_only",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "AUD01",
+                "email": "thanzil@neweast.co",
+                "name": "Thanzil"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "departmentCode": 14,
+        "departmentName": "Board",
+        "levels": [
+          {
+            "audience": "tier",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "NEGT03",
+                "email": "henry@neweast.co",
+                "name": "Henry Shaaya"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "departmentCode": 8,
+        "departmentName": "Management",
+        "levels": [
+          {
+            "audience": "tier",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "NEGT02",
+                "email": "saeed@neweast.co",
+                "name": "Saeed Juma"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "departmentCode": 14,
+        "departmentName": "Board",
+        "levels": [
+          {
+            "audience": "managers_only",
+            "assigneeMode": "selected",
+            "assignees": [
+              {
+                "userId": "NEGT01",
+                "email": "Ahmed@neweast.co",
+                "name": "Ahmed Juma"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "createdByEmail": "Sakour@neweast.com",
+    "createdByName": "Jad Sakour",
+    "createdAt": "2026-06-29T11:03:27.688Z",
+    "updatedAt": "2026-06-30T09:49:21.921Z"
+  }
+]

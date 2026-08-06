@@ -1,0 +1,65 @@
+[
+  {
+    "id": "6ada8394-9ae1-48d5-b881-2afa846c4e2d",
+    "name": "ISO_IT_PROCEDURE_MAIN_TEMP",
+    "description": "Main ISO TEMPLATE For IT Procedures",
+    "departmentCode": 7,
+    "departmentName": "IT",
+    "sections": [
+      {
+        "id": "48dba594-7cf8-4aa9-b27a-69262c84781b",
+        "title": "Table of Contents",
+        "content": "<p></p>"
+      },
+      {
+        "id": "8396aaff-66ee-40f5-906c-44ca5e35684d",
+        "title": "Document Control",
+        "content": "<p></p>"
+      },
+      {
+        "id": "88060d10-ef88-4ba6-8ba5-ca277a35cad8",
+        "title": "Procedure",
+        "content": "<p></p>"
+      }
+    ],
+    "source": "manual",
+    "createdByEmail": "rahul@neweast.co",
+    "createdByName": "Rahul",
+    "createdAt": "2026-07-13T06:56:57.785Z",
+    "updatedAt": "2026-07-13T06:56:57.785Z"
+  },
+  {
+    "id": "8341c2d8-4a58-49a4-93d2-4e9cc4890b19",
+    "name": "ISO_IT_POLICY_MAIN_TEMP",
+    "description": "Main ISO TEMPLATE For IT Policies",
+    "departmentCode": 7,
+    "departmentName": "IT",
+    "sections": [
+      {
+        "id": "86d6e2cc-7801-49ab-a765-5e803f2017d5",
+        "title": "Table of Contents",
+        "content": "<p></p>"
+      },
+      {
+        "id": "ebedc035-4c81-4827-ad92-dfd812f3f443",
+        "title": "Document Control",
+        "content": "<p></p>"
+      },
+      {
+        "id": "8afcaf11-c8c5-4800-a55d-fb93c7ac854b",
+        "title": "Policy Statement",
+        "content": "<p></p>"
+      },
+      {
+        "id": "e8d52bfe-2c77-470d-a5bf-216139843d83",
+        "title": "Scope",
+        "content": "<p></p>"
+      }
+    ],
+    "source": "manual",
+    "createdByEmail": "Rahul@neweast.co",
+    "createdByName": "Rahul VR",
+    "createdAt": "2026-06-30T04:52:09.505Z",
+    "updatedAt": "2026-06-30T04:52:09.505Z"
+  }
+]
