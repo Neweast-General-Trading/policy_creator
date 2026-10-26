@@ -25,6 +25,7 @@ import type {
   ApprovalStep,
   ApprovalStepType,
 } from "./workflow-types.js";
+import { isBusinessItCreator, resolveGuruApprover } from "./business-it-creator.js";
 
 function stepFromUser(
   groupOrder: number,
@@ -268,6 +269,25 @@ export async function buildApprovalChainFromSetup(
       departmentName,
     },
   ];
+
+  if (await isBusinessItCreator(requesterEmail)) {
+    const guru = await resolveGuruApprover(companyCode);
+    if (!guru) {
+      throw new Error(
+        "Business System & IT policies require Guru as the only approver, but Guru could not be resolved in BI.",
+      );
+    }
+
+    steps.push(
+      stepFromUser(1, "department_approver", guru, {
+        departmentCode: Number(guru.DEPTCODE) || departmentCode,
+        departmentName: guru.DEPARTMENT?.trim() || "Business System & IT",
+        levelLabel: "Guru",
+      }),
+    );
+
+    return sortApprovalSteps(steps);
+  }
 
   const setup =
     setupOverride ??

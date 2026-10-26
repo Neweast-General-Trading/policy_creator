@@ -1,7 +1,16 @@
+export interface PolicyApplicationLink {
+  id: string;
+  name: string;
+}
+
 export interface PolicySection {
   id: string;
   title: string;
   content: string;
+  /** Numbered business rules that belong to this topic */
+  businessRules?: string[];
+  /** BPM application master records this topic applies to */
+  applyToApplications?: PolicyApplicationLink[];
 }
 
 export interface Department {
@@ -127,6 +136,8 @@ export interface Policy {
   processCode?: string;
   processName?: string;
   subProcesses?: PolicySubProcessLink[];
+  /** Free-text business role details (wizard step before review) */
+  businessRole?: string;
   sections: PolicySection[];
   version: number;
   status: PolicyStatus;

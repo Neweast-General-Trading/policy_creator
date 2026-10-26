@@ -29,26 +29,28 @@ body {
     -ms-user-select: none;
   }
 
-  .policy-content h1,
-  .policy-content h2,
-  .policy-content h3 {
-    @apply font-semibold text-slate-900;
+  .policy-content p {
+    @apply mb-2 leading-relaxed text-slate-700;
   }
 
-  .policy-content p {
-    @apply mb-3 leading-relaxed text-slate-700;
+  .policy-content p:last-child {
+    @apply mb-0;
   }
 
   .policy-content ul {
-    @apply mb-3 list-disc ps-6;
+    @apply mb-2 list-disc ps-5;
   }
 
   .policy-content ol {
-    @apply mb-3 list-decimal ps-6;
+    @apply mb-2 list-decimal ps-5;
+  }
+
+  .policy-content li {
+    @apply mb-1;
   }
 
   .policy-content strong {
-    @apply font-bold;
+    @apply font-semibold;
   }
 
   .policy-content em {
@@ -71,19 +73,34 @@ body {
     @apply mb-2;
   }
 
-  .ProseMirror h1,
-  .policy-content h1 {
+  .ProseMirror h1 {
     @apply mb-3 text-2xl font-bold;
   }
 
-  .ProseMirror h2,
-  .policy-content h2 {
+  .ProseMirror h2 {
     @apply mb-2 text-xl font-semibold;
   }
 
-  .ProseMirror h3,
-  .policy-content h3 {
+  .ProseMirror h3 {
     @apply mb-2 text-lg font-semibold;
+  }
+
+  .policy-sheet .policy-content h1,
+  .policy-sheet .policy-content h2,
+  .policy-sheet .policy-content h3,
+  .policy-preview .policy-content h1,
+  .policy-preview .policy-content h2,
+  .policy-preview .policy-content h3 {
+    @apply mb-1.5 text-[13.5px] font-semibold text-slate-900;
+  }
+
+  .policy-content p.policy-bullet {
+    @apply relative ps-4;
+  }
+
+  .policy-content p.policy-bullet::before {
+    content: "•";
+    @apply absolute start-0 text-slate-800;
   }
 
   .ProseMirror ul,
@@ -109,33 +126,27 @@ body {
     @apply my-3 max-w-full rounded-md;
   }
 
-  .policy-document-view .policy-content h1 {
-    @apply mb-2 text-sm font-bold;
+  .policy-sheet .policy-content img,
+  .policy-preview .policy-content img {
+    @apply my-2 max-h-16 max-w-[180px] rounded object-contain;
   }
 
-  .policy-document-view .policy-content h2 {
-    @apply mb-1.5 text-sm font-semibold;
+  .policy-sheet table.doc-table {
+    @apply w-full border-collapse overflow-visible;
   }
 
-  .policy-document-view .policy-content h3 {
-    @apply mb-1.5 text-xs font-semibold;
+  .policy-sheet table.doc-table th,
+  .policy-sheet table.doc-table td {
+    @apply border border-slate-300 px-3 py-2 text-left align-top;
   }
 
-  .policy-document-view .policy-content p {
-    @apply mb-2 text-[13px] leading-relaxed;
+  .policy-sheet table.doc-table th {
+    @apply bg-slate-50 font-semibold text-slate-600;
   }
 
-  .policy-document-view .policy-content ul,
-  .policy-document-view .policy-content ol {
-    @apply mb-2 text-[13px];
-  }
-
-  .policy-document-view .policy-content img {
-    @apply my-2 max-h-12 max-w-[160px] rounded object-contain;
-  }
-
-  .policy-document-view .policy-content table {
-    @apply my-2 text-xs;
+  .policy-sheet .policy-content table,
+  .policy-preview .policy-content table {
+    @apply my-2 overflow-x-auto text-xs;
   }
 
   .ProseMirror table,
@@ -173,5 +184,21 @@ body {
 
   .sim-node-current {
     animation: sim-pulse 2.2s ease-in-out infinite;
+  }
+
+  @media print {
+    .policy-sheet {
+      max-width: none !important;
+    }
+
+    .policy-sheet table.doc-table th,
+    .policy-sheet table.doc-table td {
+      border-color: #64748b;
+    }
+
+    .policy-sheet table.doc-table th {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
 }

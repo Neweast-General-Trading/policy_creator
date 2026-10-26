@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRightLeft,
+  CheckCircle2,
   Copy,
   CopyPlus,
   Download,
@@ -48,10 +49,12 @@ interface PolicyViewerProps {
   onDuplicate: () => void;
   onNewVersion?: () => void;
   onDeactivate?: () => void;
+  onActivate?: () => void;
   onUpdated?: (policy: Policy) => void;
   canDeleteAnyPolicy?: boolean;
   onDelete?: () => void;
   canDeactivateAnyPolicy?: boolean;
+  canEditAnyPolicy?: boolean;
 }
 
 export default function PolicyViewer({
@@ -60,9 +63,11 @@ export default function PolicyViewer({
   onDuplicate,
   onNewVersion,
   onDeactivate,
+  onActivate,
   onUpdated,
   canDeleteAnyPolicy = false,
   canDeactivateAnyPolicy = false,
+  canEditAnyPolicy = false,
   onDelete,
 }: PolicyViewerProps) {
   useCopyProtection(true);
@@ -88,7 +93,7 @@ export default function PolicyViewer({
   const userEmail = user?.email?.toLowerCase() ?? "";
   const isOwner = policy.createdByEmail.toLowerCase() === userEmail;
   const canEditPolicy =
-    isOwner &&
+    (isOwner || canEditAnyPolicy) &&
     policy.status !== "approved" &&
     policy.status !== "published" &&
     (policy.status === "draft" ||
@@ -114,6 +119,11 @@ export default function PolicyViewer({
     policy.status === "published" &&
     policy.isActive !== false &&
     typeof onDeactivate === "function";
+  const canActivate =
+    (isOwner || canDeactivateAnyPolicy) &&
+    policy.status === "published" &&
+    policy.isActive === false &&
+    typeof onActivate === "function";
   const canDelete =
     Boolean(onDelete) &&
     (canDeleteAnyPolicy || (isOwner && policy.status === "draft"));
@@ -311,6 +321,18 @@ export default function PolicyViewer({
                     Deactivate
                   </Button>
                 )}
+                {canActivate && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-emerald-200 text-emerald-800 hover:bg-emerald-50"
+                    onClick={onActivate}
+                    disabled={isActing}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Activate
+                  </Button>
+                )}
                 {canEditPolicy && (
                   <Button type="button" variant="outline" onClick={onEdit}>
                     <Edit className="h-4 w-4" />
@@ -338,8 +360,8 @@ export default function PolicyViewer({
                   variant="blue"
                   onClick={async () => {
                     try {
-                      await downloadPolicyPdf(policy);
-                      toast.success("PDF downloaded");
+                    await downloadPolicyPdf(policy);
+                    toast.success("Use the print dialog and choose Save as PDF");
                     } catch {
                       toast.error("Failed to generate PDF");
                     }
@@ -517,7 +539,7 @@ export default function PolicyViewer({
             </div>
           </div>
 
-          <div className="app-surface no-copy rounded-lg p-4 md:p-5">
+          <div className="app-surface no-copy rounded-lg p-6 md:p-10">
             <PolicyDocumentView policy={policy} />
           </div>
       </div>

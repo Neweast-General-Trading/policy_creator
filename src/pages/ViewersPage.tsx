@@ -110,7 +110,7 @@ export default function ViewersPage() {
               <ScrollArea className="h-full">
                 <div
                   ref={contentRef}
-                  className="no-copy mx-auto max-w-4xl px-6 py-8"
+                  className="no-copy mx-auto max-w-[880px] px-6 py-8"
                 >
                   <PolicyDocumentView policy={selectedPolicy} />
                 </div>

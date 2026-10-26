@@ -1,187 +1,263 @@
-# Policy Creator
+# Policy Creator — Corporate Policy Governance
 
-NEWEAST internal platform for creating, approving, versioning, and publishing company policies — with a separate read-only **Policy Viewer** portal for employees.
+A web platform for **authoring, approving, versioning and publishing** company policies.
+It models the full lifecycle **Draft → Approval → Publish → Viewer**, captures topics,
+business rules and BPM application links on every policy, and produces print-ready
+**PDF** documents in the NEWEAST layout.
 
-## What it does
+> Internal product of **New East General Trading**. See [LICENSE](LICENSE).
 
-| Area | Description |
-|------|-------------|
-| **Policy Creator** | HR / authorized staff create policies, manage templates, and configure approval matrices |
-| **Approval workflow** | Multi-stage electronic approval with signatures, escalation, and matrix changes |
-| **Policy Viewer** | Employees browse **published** policies by company and department (Intranet login) |
-| **Approval Setup** | IT configures per-department approval chains — including **multi-company** matrices |
-
----
-
-## Main workflow
-
-### Create & publish a policy
-
-1. **Create** — choose *New policy* or *New version* from an existing published policy
-2. Select **companies** (single or multi-select), **visibility** (general vs department-specific), and **department**
-3. Add **topics** and rich-text **content** (TipTap editor)
-4. **Save draft** → **Submit for approval**
-5. Approvers sign at each stage (Teams notifications)
-6. Owner **Publish** when fully approved → policy appears in the **Viewer**
-
-### Policy versions
-
-- **New version** keeps the same name and scope; only content changes
-- Version number increments automatically (`v1`, `v2`, …)
-- When a new version is **published**, older published versions in the same family become **Inactive** (hidden from Viewer)
-
-### Deactivate (block) a policy
-
-- **Owner** or **IT Admin** can deactivate a **Published + Active** policy
-- Deactivated policies stay in Creator but are hidden from Viewer
-
----
-
-## Stack
-
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React 19, Vite 7, TypeScript, Tailwind CSS 4 |
-| **UI** | Radix UI, TipTap (rich text), TanStack Query, Sonner toasts |
-| **Backend** | Node.js, Express, TypeScript |
-| **Storage** | JSON files (`server/data/`) — policies, templates, approval setups |
-| **Auth** | Microsoft OAuth (Creator) · Intranet OTP link (Viewer) · JWT |
-| **Integrations** | SAP HANA / BI (companies, departments, users), Microsoft Teams notifications |
-| **Deploy** | nginx + PM2 (`policy-creator-api`) |
-
----
-
-## Production URLs
+Live apps:
 
 | App | URL |
 |-----|-----|
-| **Policy Creator** | https://policycreator.neweast.cloud/ |
-| **Policy Viewer** | https://policycreator.neweast.cloud/viewer |
-
-- **API** (internal): port **4025** — PM2 process `policy-creator-api`
-- Public access is via nginx (HTTPS 443), not the raw port
+| Policy Creator | https://policycreator.neweast.cloud/ |
+| Policy Viewer | https://policycreator.neweast.cloud/viewer |
 
 ---
 
-## Project structure
+## Table of contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Tech stack](#tech-stack)
+- [Repository layout](#repository-layout)
+- [Quick start (local development)](#quick-start-local-development)
+- [Configuration](#configuration)
+- [Production deployment](#production-deployment)
+- [Access control](#access-control)
+- [Useful commands](#useful-commands)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+
+---
+
+## Features
+
+**Policy authoring**
+
+- Wizard: companies (multi-select), visibility (general vs department-specific), department,
+  optional BPM process / sub-process link, topics, rich-text content, **business rules**,
+  and **Apply to** (BPM Application Master, multi-select).
+- Word template import into topics; reusable policy templates.
+- Auto-saved drafts; print-ready document preview in the Review step.
+- **Business System & IT** staff can create policies for any company, and can **edit any**
+  in-flight policy (draft / returned / in approval).
+
+**Approval workflow**
+
+- Multi-stage electronic approval with signatures, comments, escalation and matrix changes.
+- Per-department **Approval Setup**, including multi-company matrices.
+- Business System & IT policies route to **Guru** as the sole approver.
+- Microsoft Teams notifications for submit, approve, return and setup changes.
+
+**Versions & publication**
+
+- **New version** keeps name and scope; version number increments (`v1.0`, `v2.0`, …).
+- Publishing a new version deactivates older published copies in the same family.
+- Owner or IT can **deactivate** / **activate** a published policy (only one active version
+  per family). Viewer shows published **and active** policies only.
+
+**Documents & printing**
+
+- Professional NEWEAST sheet: header, table of contents, document control, authorisation
+  table, version history, topic tree (content → business rules → Apply to).
+- Browser print / Save as PDF (HTML print path — no canvas slicing).
+- Preview in a new tab uses the same print template.
+
+**Policy Viewer**
+
+- Read-only portal for employees (Intranet OTP login).
+- Browse published policies by company and department; AI assistant over visible policies.
+- Global viewers (HR / Audit / IT, configurable) see all published active policies.
+
+**Platform**
+
+- Microsoft Entra ID sign-in for Creator; Intranet OTP for Viewer; JWT app sessions.
+- Integrations: **SAP HANA / BI** (companies, departments, users), **BPM PostgreSQL**
+  (processes, activities, application master), Microsoft Teams, optional OpenAI chat.
+- JSON file store for policies, templates and approval setups.
+
+## Architecture
 
 ```
-policy_creator/
-├── src/                    # React app (Creator + Viewer entry)
-│   ├── App.tsx             # Policy Creator shell
-│   ├── ViewersApp.tsx      # Policy Viewer shell
-│   ├── components/         # UI, wizard, workflow, viewer
-│   └── pages/              # Dashboard, templates, approval setup, …
+┌──────────────────────────┐  HTTPS   ┌───────────┐  /api/*     ┌─────────────────────────┐
+│  Browser (React SPA)     │ ───────▶ │   nginx   │ ──────────▶ │  Express API (Node)     │
+│  Vite build (static)     │ ◀─────── │ + TLS     │             │  PM2 :4025              │
+│  Creator + /viewer       │          └───────────┘             └────────────┬────────────┘
+└──────────────────────────┘                                                 │
+                     ┌───────────────────────────┬───────────────┬───────────┴────────┐
+                     ▼                           ▼               ▼                    ▼
+               JSON files                  SAP HANA / BI    BPM PostgreSQL      Teams / OpenAI
+          (policies, templates,            companies,         processes,           notify / chat
+           approval setups)                users, depts       applications
+```
+
+- The SPA is a static build served by nginx from `/var/www/policycreator.neweast.cloud`.
+- nginx proxies `/api/` to `policy-creator-api` on port **4025**.
+- Viewer is the same SPA at `/viewer` (and intranet / MIS redirects).
+
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 19, TypeScript, Vite 7, Tailwind CSS 4, Radix UI, TipTap, TanStack Query, Sonner |
+| Backend | Node.js, Express, TypeScript |
+| Storage | JSON files under `server/data/` |
+| Auth | Microsoft Entra ID (Creator), Intranet OTP (Viewer), JWT |
+| Integrations | SAP HANA (`@sap/hana-client`), BPM PostgreSQL (`pg`), SQL Server payroll, Teams |
+| Documents | Print HTML → browser Save as PDF |
+| Ops | nginx, PM2 (`policy-creator-api`), `deploy.sh` |
+
+## Repository layout
+
+```
+.
+├── src/                         React SPA (Creator + Viewer)
+│   ├── App.tsx                  Policy Creator shell
+│   ├── ViewersApp.tsx           Policy Viewer shell
+│   ├── components/              Wizard, workflow, document, shared UI
+│   ├── lib/                     API client, PDF/HTML, access helpers
+│   └── pages/                   Dashboard, lists, templates, approval setup
 ├── server/
-│   ├── src/                # Express API
-│   │   ├── index.ts        # Routes
-│   │   ├── workflow.ts     # Submit / approve / publish
-│   │   ├── policy-access.ts
-│   │   └── approval-setup-*.ts
-│   └── data/               # JSON persistence (not all committed)
-├── nginx/                  # Viewer redirects for intranet / MIS
-├── deploy.sh               # Build + rsync + PM2 restart
-└── public/                 # Static assets (logo, …)
+│   ├── src/                     Express API
+│   │   ├── index.ts             HTTP routes
+│   │   ├── workflow.ts          Submit / approve / publish
+│   │   ├── bpm-catalog.ts       BPM processes, activities, applications
+│   │   ├── policy-access.ts     Viewer / creator visibility
+│   │   └── approval-setup-*.ts  Approval matrices
+│   ├── data/                    Runtime JSON (policies.json is git-ignored)
+│   └── .env.example             All supported environment variables
+├── nginx/                       Viewer includes for intranet / MIS / policy host
+├── deploy.sh                    Build + rsync + nginx reload + PM2 restart
+├── public/                      Logo and static assets
+└── package.json                 Web app scripts
 ```
 
----
-
-## Run locally
+## Quick start (local development)
 
 ### Prerequisites
 
-- Node.js 20+
-- Copy `server/.env.example` → `server/.env` and fill values (HANA, JWT, Microsoft OAuth)
-- BI / HANA access for companies and departments
+- **Node.js ≥ 20** and npm ≥ 10
+- SAP HANA / BI access for companies, departments and users
+- *Optional:* BPM PostgreSQL (process link + Application Master)
 
-### Commands
-
-```bash
-# API
-cd server && npm install && npm run dev
-
-# Creator UI (terminal 2) — http://localhost:5181
-cd .. && npm install && npm run dev
-
-# Viewer UI uses the same dev server at /viewer
-```
-
-### Build
+### 1. Clone and install
 
 ```bash
-cd server && npm run build
-cd .. && npm run build          # Creator
-npm run build:viewer            # Viewer bundle (optional separate output)
+git clone https://github.com/Neweast-General-Trading/policy_creator.git
+cd policy_creator
+npm run install:all
 ```
 
----
+### 2. Configure the API
 
-## Deploy
+```bash
+cp server/.env.example server/.env
+```
 
-On the production server:
+Edit `server/.env` for local use (see [Configuration](#configuration)). At minimum set
+HANA credentials and `APP_JWT_SECRET`.
+
+On a fresh install, copy the example policy store if `server/data/policies.json` is missing:
+
+```bash
+cp server/data/policies.json.example server/data/policies.json
+```
+
+### 3. Run the API and the web UI
+
+```bash
+# terminal 1 — API on http://localhost:4025
+npm run dev:api
+
+# terminal 2 — web UI on http://localhost:5181
+npm run dev:web
+```
+
+Open http://localhost:5181 for Creator and http://localhost:5181/viewer for Viewer.
+Vite proxies `/api` to the Express process.
+
+## Configuration
+
+All backend settings are environment variables documented in
+[`server/.env.example`](server/.env.example). The most important ones:
+
+| Variable | Purpose |
+|----------|---------|
+| `PORT` | API listen port (default `4025`) |
+| `APP_JWT_SECRET` / `JWT_SECRET` | Session signing (**required in production**) |
+| `SERVER_NODE`, `SAP_HANA_USER`, `SAP_HANA_PASSWORD`, `SAP_HANA_SCHEMA` | BI companies, departments, users |
+| `AZURE_*` / `MICROSOFT_*` | Creator Microsoft sign-in |
+| `CLIENT_URL` | Public Creator URL (OAuth redirect, Teams links) |
+| `BPM_DB_*` | BPM PostgreSQL (processes, activities, application master) |
+| `POLICY_DELETE_ADMINS` | Extra emails allowed to delete any policy |
+| `POLICY_GURU_EMAIL`, `POLICY_GURU_USER_ID` | Sole approver for Business System & IT |
+| `GLOBAL_VIEW_DEPT_NAMES` | Viewer departments that see all published policies |
+| `AUDIT_DEPT_CODE` | Audit routing |
+| `TEAMS_API` | Teams notification endpoint |
+| `OPENAI_API_KEY` | Optional Viewer AI assistant |
+
+The web UI uses `VITE_API_URL` when the API is not on the same origin (empty in production;
+nginx serves `/api`).
+
+## Production deployment
+
+On the production host:
 
 ```bash
 bash deploy.sh
 ```
 
-This builds API + client, rsyncs to `/var/www/policycreator.neweast.cloud`, reloads nginx, and restarts `policy-creator-api` via PM2.
+This:
 
----
+1. Builds the API (`server/`) and the client (`dist/`).
+2. Rsyncs the SPA to `/var/www/policycreator.neweast.cloud`.
+3. Ensures nginx includes for intranet / MIS viewer redirects.
+4. Reloads nginx and restarts PM2 process `policy-creator-api`.
 
-## Environment (`server/.env`)
+**Production checklist**
 
-| Variable | Purpose |
-|----------|---------|
-| `PORT` | API port (default `4025`) |
-| `SAP_HANA_*` | BI database connection |
-| `JWT_SECRET` | App session tokens |
-| `MICROSOFT_CLIENT_ID/SECRET/TENANT_ID` | Creator login (Azure AD) |
-| `POLICY_DELETE_ADMINS` | Comma-separated emails with global delete access |
-| `GLOBAL_VIEW_DEPT_NAMES` | Departments that see all policies in Viewer (default HR, Audit, IT) |
-| `AUDIT_DEPT_CODE` | Audit department code for approval routing |
+- Strong `APP_JWT_SECRET`; never commit `server/.env`.
+- HANA, BPM and Teams endpoints reachable from the API host.
+- TLS terminated by nginx; API bound to localhost / internal only.
+- Runtime store `server/data/policies.json` is git-ignored — back it up separately.
 
-See `server/.env.example` for a starter template. **Never commit** `server/.env`.
+## Access control
 
----
+| Who | Creator | Edit others' drafts | Approval Setup | Deactivate / Activate | Viewer |
+|-----|---------|---------------------|----------------|------------------------|--------|
+| Policy Creator menu (BI) | Own policies | — | — | Own published | — |
+| Business System & IT | Any company / department | Yes (in-flight) | — | Own published | Scoped |
+| IT (approval-setup admins) | If Creator menu | — | Yes | Any published | — |
+| Policy owner | Own policies | — | — | Own published | — |
+| Any BI employee | — | — | — | — | Published, scoped |
+| HR / Audit / IT (global viewer) | — | — | — | — | All published active |
 
-## Data files (`server/data/`)
+- **Submit / Publish** stay with the policy owner.
+- Viewer never shows drafts, rejected, or inactive published copies.
 
-| File | Contents |
-|------|----------|
-| `policies.json` | All policies (runtime — use `policies.json.example` on fresh install) |
-| `templates.json` | Reusable policy templates |
-| `approval-setups.json` | Approval matrices per source department / companies |
+## Useful commands
 
----
+| Command | Description |
+|---------|-------------|
+| `npm run install:all` | Install web and API dependencies |
+| `npm run dev:api` / `npm run dev:web` | Start the API / the web UI in watch mode |
+| `npm run build` | Production build of the Creator SPA |
+| `npm run build --prefix server` | Compile the API |
+| `bash deploy.sh` | Build, rsync, reload nginx, restart PM2 |
 
-## Access control (summary)
+## Documentation
 
-| Role | Creator | Viewer | Approval Setup | Deactivate policy |
-|------|---------|--------|----------------|-------------------|
-| **Policy Creator menu (BI)** | ✅ | — | — | — |
-| **IT department** | If has Creator menu | — | ✅ | ✅ (any published) |
-| **Policy owner** | ✅ own policies | — | — | ✅ own published |
-| **Any BI employee** | — | ✅ scoped policies | — | — |
-| **HR / Audit / IT (global viewer)** | — | ✅ all published | — | — |
+- [API environment reference](server/.env.example)
+- [Deploy script](deploy.sh)
+- [Contributing](CONTRIBUTING.md)
 
----
+## Contributing
 
-## Key features
+1. Create a feature branch from `main`.
+2. Run `npm run build --prefix server` and `npm run build` before opening a pull request.
+3. Never commit secrets, `.env` files, or `server/data/policies.json`.
+4. Keep user-facing text in English.
 
-- **Multi-company policies** — one policy applies to several companies
-- **Visibility scope** — *General* (all departments) or *Department-specific*
-- **Multi-company approval setup** — one matrix for IT (or any dept) across companies
-- **Version lineage** — `policyFamilyId`, sequential versions, auto-inactivate on publish
-- **BPM link** (optional) — tie policy to business process / sub-processes
-- **PDF export** — download or preview policy document
-- **Teams notifications** — approval requests and setup change alerts
-
----
-
-## Repository
-
-**https://github.com/Neweast-General-Trading/policy_creator**
-
----
-
-## NEWEAST · Internal use
+See [CONTRIBUTING.md](CONTRIBUTING.md).

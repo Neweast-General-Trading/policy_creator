@@ -24,6 +24,7 @@ import {
   fetchPolicies,
   fetchPolicy,
   newVersionPolicyApi,
+  activatePolicyApi,
   deactivatePolicyApi,
   savePolicyApi,
 } from "@/lib/api";
@@ -201,6 +202,25 @@ export default function App() {
     }
   };
 
+  const handleActivatePolicy = async (policy: Policy) => {
+    if (
+      !window.confirm(
+        `Activate "${policy.name}" v${policy.version}? It will appear again in the Policy Viewer. Other active versions of the same policy will be deactivated.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      const updated = await activatePolicyApi(policy.id);
+      await queryClient.invalidateQueries({ queryKey: ["policies"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      setSelectedPolicy(updated);
+      toast.success("Policy activated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to activate policy");
+    }
+  };
+
   const handleNavigateTemplates = () => {
     setSelectedPolicy(null);
     setPrefillTemplate(null);
@@ -240,6 +260,7 @@ export default function App() {
         | "visibilityScope"
         | "departmentCode"
         | "departmentName"
+        | "businessRole"
         | "sections"
         | "version"
       >,
@@ -259,6 +280,7 @@ export default function App() {
       processCode: policy.processCode,
       processName: policy.processName,
       subProcesses: policy.subProcesses,
+      businessRole: policy.businessRole,
       sections: policy.sections,
       version: policy.version,
     });
@@ -467,9 +489,11 @@ export default function App() {
                   onDuplicate={() => handleDuplicatePolicy(selectedPolicy)}
                   onNewVersion={() => void handleNewVersion(selectedPolicy)}
                   onDeactivate={() => void handleDeactivatePolicy(selectedPolicy)}
+                  onActivate={() => void handleActivatePolicy(selectedPolicy)}
                   onUpdated={setSelectedPolicy}
                   canDeleteAnyPolicy={appAccess?.canDeleteAnyPolicy ?? false}
                   canDeactivateAnyPolicy={appAccess?.canDeactivateAnyPolicy ?? false}
+                  canEditAnyPolicy={appAccess?.canEditAnyPolicy ?? false}
                   onDelete={() => handleDeletePolicy(selectedPolicy.id)}
                 />
               )}

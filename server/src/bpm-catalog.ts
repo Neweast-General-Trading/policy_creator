@@ -207,6 +207,31 @@ export async function listProcessesForFunction(departmentId: string): Promise<Bp
   }
 }
 
+export interface BpmApplication {
+  id: string;
+  name: string;
+  vendor: string | null;
+  category: string;
+  status: string;
+}
+
+export async function listApplications(): Promise<BpmApplication[]> {
+  const client = await getPool().connect();
+  try {
+    const { rows } = await client.query<BpmApplication>(
+      `
+      SELECT id, name, vendor, category, status
+      FROM applications
+      WHERE status = 'Active'
+      ORDER BY name
+      `,
+    );
+    return rows;
+  } finally {
+    client.release();
+  }
+}
+
 export async function listSubProcessesForProcess(processId: string): Promise<BpmSubProcess[]> {
   const client = await getPool().connect();
   try {

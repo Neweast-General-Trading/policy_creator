@@ -13,6 +13,17 @@ function migrateSection(raw: Partial<TemplateSection> & { title: string }): Temp
     id: raw.id ?? randomUUID(),
     title: raw.title,
     content: raw.content ?? "<p></p>",
+    businessRules: Array.isArray(raw.businessRules)
+      ? raw.businessRules.map((rule) => String(rule ?? "").trim()).filter(Boolean)
+      : [],
+    applyToApplications: Array.isArray(raw.applyToApplications)
+      ? raw.applyToApplications
+          .map((item) => ({
+            id: String(item?.id ?? "").trim(),
+            name: String(item?.name ?? "").trim(),
+          }))
+          .filter((item) => item.id && item.name)
+      : [],
   };
 }
 

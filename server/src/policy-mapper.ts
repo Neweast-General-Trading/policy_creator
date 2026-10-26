@@ -28,6 +28,7 @@ export function mapPolicy(row: StoredPolicy) {
     processCode: row.processCode,
     processName: row.processName,
     subProcesses: row.subProcesses ?? [],
+    businessRole: row.businessRole ?? "",
     sections: row.sections,
     version: row.version,
     status: row.status,

@@ -15,6 +15,7 @@ import type {
   PolicyComment,
   StoredPolicy,
 } from "./workflow-types.js";
+import { isBusinessItCreator } from "./business-it-creator.js";
 import { buildPolicyApprovalTeamsMessage, sendTeamsNotification } from "./teams-notify.js";
 
 function stepFromUser(
@@ -274,11 +275,13 @@ export function canUserViewPolicy(policy: StoredPolicy, email: string) {
 
 // Legacy sync check (creator / approver / shared only). Prefer policy-access.canUserViewPolicy with context.
 
-export function canUserEditPolicy(policy: StoredPolicy, email: string) {
-  const normalized = normalizeEmail(email);
-  if (normalizeEmail(policy.createdByEmail) !== normalized) return false;
+export async function canUserEditPolicy(policy: StoredPolicy, email: string) {
   if (policy.status === "approved" || policy.status === "published") return false;
-  return policy.status === "draft" || policy.status === "returned" || policy.status === "in_approval";
+  if (!["draft", "returned", "in_approval"].includes(policy.status)) return false;
+  const normalized = normalizeEmail(email);
+  if (!normalized) return false;
+  if (normalizeEmail(policy.createdByEmail) === normalized) return true;
+  return isBusinessItCreator(email);
 }
 
 export function canUserApprovePolicy(policy: StoredPolicy, email: string) {
@@ -351,11 +354,14 @@ export async function submitPolicyForApproval(
     submitterLevelMode,
   );
 
-  const autoEligible = await shouldAutoApproveAsTopLevelSubmitter(
-    policy,
-    requesterEmail,
-    additionalApprovers,
-  );
+  const { isBusinessItCreator } = await import("./business-it-creator.js");
+  const autoEligible =
+    !(await isBusinessItCreator(requesterEmail)) &&
+    (await shouldAutoApproveAsTopLevelSubmitter(
+      policy,
+      requesterEmail,
+      additionalApprovers,
+    ));
   const actedAt = new Date().toISOString();
 
   if (autoEligible && !hasExternalPendingApprovers(approvalSteps, requesterEmail)) {

@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   Download,
   Eye,
   Plus,
@@ -14,6 +13,7 @@ import CompanyMultiSelectContainer from "@/components/shared/CompanyMultiSelectC
 import DepartmentSelect from "@/components/shared/DepartmentSelect";
 import SubmitApprovalDialog from "@/components/workflow/SubmitApprovalDialog";
 import BpmProcessFields from "@/components/wizard/BpmProcessFields";
+import PolicyDocumentView from "@/components/viewer/PolicyDocumentView";
 import SectionContentEditor from "@/components/wizard/SectionContentEditor";
 import TemplatePicker from "@/components/wizard/TemplatePicker";
 import TopicSortableList from "@/components/wizard/TopicSortableList";
@@ -21,6 +21,7 @@ import WizardProgress from "@/components/wizard/WizardProgress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/AuthContext";
 import { useAutoSaveDraft } from "@/hooks/useAutoSaveDraft";
 import { fetchTemplate, submitPolicyApi } from "@/lib/api";
 import {
@@ -31,7 +32,7 @@ import {
 import { downloadPolicyPdf, openPolicyInBrowser } from "@/lib/pdf";
 import { buildSectionsFromTemplate } from "@/lib/templates";
 import { generateId } from "@/lib/utils";
-import { formatPolicyCompaniesLabel, formatPolicyScopeLabel, getPolicyCompanies } from "@/lib/policy-companies";
+import { formatPolicyCompaniesLabel, getPolicyCompanies } from "@/lib/policy-companies";
 import type {
   AdditionalApproverDraft,
   CompanyOption,
@@ -80,7 +81,11 @@ function buildInitialDraft(initialPolicy: Policy | null | undefined): PolicyDraf
     processName: initialPolicy?.processName,
     subProcesses: initialPolicy?.subProcesses?.map((item) => ({ ...item })) ?? [],
     linkToBpm: Boolean(initialPolicy?.processId),
-    sections: initialPolicy?.sections.map((section) => ({ ...section })) ?? [],
+    sections:
+      initialPolicy?.sections.map((section) => ({
+        ...section,
+        businessRules: section.businessRules?.length ? [...section.businessRules] : [""],
+      })) ?? [],
     version: initialPolicy?.version ?? 1,
   };
 }
@@ -112,6 +117,7 @@ export default function CreatePolicyWizard({
   initialTemplate = null,
   isDuplicate = false,
 }: CreatePolicyWizardProps) {
+  const { user } = useAuth();
   const editingId = initialPolicy?.id && !isDuplicate ? initialPolicy.id : undefined;
   const isVersionDraft = Boolean(initialPolicy?.parentPolicyId && !isDuplicate);
   const canEditScope =
@@ -122,7 +128,13 @@ export default function CreatePolicyWizard({
       initialPolicy.status === "returned");
   const storedDraft = !initialPolicy ? loadWizardDraft() : loadWizardDraft(editingId);
 
-  const [step, setStep] = useState<WizardStep>(storedDraft?.step ?? "info");
+  const [step, setStep] = useState<WizardStep>(() => {
+    const storedStep = storedDraft?.step;
+    if (storedStep === "info" || storedStep === "titles" || storedStep === "content" || storedStep === "review") {
+      return storedStep;
+    }
+    return "info";
+  });
   const [templateId, setTemplateId] = useState(initialTemplate?.id ?? "blank");
   const [savedPolicy, setSavedPolicy] = useState<Policy | null>(
     initialPolicy && !isDuplicate ? initialPolicy : null,
@@ -130,15 +142,26 @@ export default function CreatePolicyWizard({
   const [isSaving, setIsSaving] = useState(false);
   const [draft, setDraft] = useState<PolicyDraft>(() => {
     const base = storedDraft?.draft ?? buildInitialDraft(initialPolicy);
-    if (base.selectedCompanies?.length) return base;
-    if (base.companyCode) {
+    const withRules: PolicyDraft = {
+      ...base,
+      sections: (base.sections ?? []).map((section) => ({
+        ...section,
+        businessRules: section.businessRules?.length ? section.businessRules : [""],
+      })),
+    };
+    if (withRules.selectedCompanies?.length) return withRules;
+    if (withRules.companyCode) {
       return {
-        ...base,
-        selectedCompanies: [{ code: base.companyCode, name: base.companyName }],
-        visibilityScope: base.visibilityScope ?? "department",
+        ...withRules,
+        selectedCompanies: [{ code: withRules.companyCode, name: withRules.companyName }],
+        visibilityScope: withRules.visibilityScope ?? "department",
       };
     }
-    return { ...base, selectedCompanies: [], visibilityScope: base.visibilityScope ?? "department" };
+    return {
+      ...withRules,
+      selectedCompanies: [],
+      visibilityScope: withRules.visibilityScope ?? "department",
+    };
   });
   const [activeSectionIndex, setActiveSectionIndex] = useState(
     storedDraft?.activeSectionIndex ?? 0,
@@ -193,6 +216,41 @@ export default function CreatePolicyWizard({
     total: draft.sections.length,
   };
 
+  const reviewPolicy = useMemo(
+    () =>
+      ({
+        id: savedPolicy?.id ?? "preview",
+        name: draft.name,
+        companyCode: draft.companyCode,
+        companyName: draft.companyName,
+        companies: draft.selectedCompanies.map((item) => ({
+          companyCode: item.code,
+          companyName: item.name,
+        })),
+        visibilityScope: draft.visibilityScope,
+        departmentCode: draft.departmentCode ?? 0,
+        departmentName: draft.departmentName,
+        processId: draft.processId,
+        processCode: draft.processCode,
+        processName: draft.processName,
+        subProcesses: draft.subProcesses,
+        sections: draft.sections,
+        version: draft.version,
+        status: savedPolicy?.status ?? "draft",
+        createdByEmail: savedPolicy?.createdByEmail || user?.email || "",
+        createdByName: savedPolicy?.createdByName || user?.name || "",
+        sharedWith: [],
+        approvalSteps: savedPolicy?.approvalSteps ?? [],
+        comments: [],
+        currentApprovers: [],
+        createdAt: savedPolicy?.createdAt || new Date().toISOString(),
+        updatedAt: savedPolicy?.updatedAt || new Date().toISOString(),
+        publishedAt: savedPolicy?.publishedAt,
+        approvedAt: savedPolicy?.approvedAt,
+      }) as Policy,
+    [draft, savedPolicy, user],
+  );
+
   const canGoNext = useMemo(() => {
     if (step === "info") {
       const bpmValid =
@@ -209,7 +267,9 @@ export default function CreatePolicyWizard({
     if (step === "content") {
       return draft.sections.every(
         (section) =>
-          section.title.trim().length > 0 && hasSectionContent(section.content),
+          section.title.trim().length > 0 &&
+          hasSectionContent(section.content) &&
+          (section.businessRules ?? []).some((rule) => rule.trim().length > 0),
       );
     }
     return true;
@@ -242,7 +302,10 @@ export default function CreatePolicyWizard({
     }
     setDraft((current) => ({
       ...current,
-      sections: [...current.sections, { id: generateId(), title, content: "<p></p>" }],
+      sections: [
+        ...current.sections,
+        { id: generateId(), title, content: "<p></p>", businessRules: [""], applyToApplications: [] },
+      ],
     }));
     setNewTitle("");
   };
@@ -267,6 +330,24 @@ export default function CreatePolicyWizard({
       ...current,
       sections: current.sections.map((section) =>
         section.id === id ? { ...section, content } : section,
+      ),
+    }));
+  };
+
+  const updateSectionBusinessRules = (id: string, businessRules: string[]) => {
+    setDraft((current) => ({
+      ...current,
+      sections: current.sections.map((section) =>
+        section.id === id ? { ...section, businessRules } : section,
+      ),
+    }));
+  };
+
+  const updateSectionApplyTo = (id: string, applyToApplications: PolicySection["applyToApplications"]) => {
+    setDraft((current) => ({
+      ...current,
+      sections: current.sections.map((section) =>
+        section.id === id ? { ...section, applyToApplications } : section,
       ),
     }));
   };
@@ -300,7 +381,15 @@ export default function CreatePolicyWizard({
       processCode: draft.linkToBpm ? draft.processCode : undefined,
       processName: draft.linkToBpm ? draft.processName : undefined,
       subProcesses: draft.linkToBpm ? draft.subProcesses : [],
-      sections: draft.sections,
+      sections: draft.sections.map((section) => ({
+        ...section,
+        businessRules: (section.businessRules ?? [])
+          .map((rule) => rule.trim())
+          .filter(Boolean),
+        applyToApplications: (section.applyToApplications ?? []).filter(
+          (item) => item.id && item.name,
+        ),
+      })),
       version: draft.version,
     } as Policy);
     setSavedPolicy(saved);
@@ -382,7 +471,7 @@ export default function CreatePolicyWizard({
   return (
     <div
       className={`app-surface mx-auto w-full rounded-lg p-4 md:p-6 ${
-        step === "content" ? "max-w-6xl" : "max-w-5xl"
+        step === "content" || step === "review" ? "max-w-6xl" : "max-w-5xl"
       }`}
     >
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -668,109 +757,61 @@ export default function CreatePolicyWizard({
           activeIndex={activeSectionIndex}
           onSelect={setActiveSectionIndex}
           onContentChange={updateSectionContent}
+          onBusinessRulesChange={updateSectionBusinessRules}
+          onApplyToChange={updateSectionApplyTo}
           topicProgress={topicProgress}
         />
       )}
 
       {step === "review" && (
         <div className="space-y-4">
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            <div className="flex items-center gap-2 font-medium">
-              <CheckCircle2 className="h-4 w-4" />
-              Ready to save — all {topicProgress.total} topics completed
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-slate-500">
+              Final document preview — {topicProgress.total} topic
+              {topicProgress.total === 1 ? "" : "s"}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={handleSave} disabled={isSaving}>
+                <Save className="h-4 w-4" />
+                {isSaving ? "Saving..." : "Save Draft"}
+              </Button>
+              <Button type="button" onClick={handleSubmit} disabled={isSaving}>
+                <Send className="h-4 w-4" />
+                {isSaving ? "Submitting..." : "Submit for Approval"}
+              </Button>
+              <Button
+                type="button"
+                variant="blue"
+                onClick={async () => {
+                  try {
+                    await downloadPolicyPdf(reviewPolicy);
+                    toast.success("Use the print dialog and choose Save as PDF");
+                  } catch {
+                    toast.error("Failed to generate PDF");
+                  }
+                }}
+              >
+                <Download className="h-4 w-4" />
+                PDF
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  openPolicyInBrowser(reviewPolicy);
+                  toast.info("Policy opened in new tab");
+                }}
+              >
+                <Eye className="h-4 w-4" />
+                Preview
+              </Button>
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-md border border-slate-200 p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Policy</div>
-              <div className="mt-1 font-semibold text-slate-900">{draft.name}</div>
+          <div className="rounded-xl bg-slate-100/80 p-3 md:p-6">
+            <div className="mx-auto max-w-[860px] bg-white px-6 py-8 shadow-sm ring-1 ring-slate-200 md:px-12 md:py-10">
+              <PolicyDocumentView policy={reviewPolicy} />
             </div>
-            <div className="rounded-md border border-slate-200 p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Scope</div>
-              <div className="mt-1 font-semibold text-slate-900">
-                {formatPolicyScopeLabel({
-                  companyCode: draft.companyCode,
-                  companyName: draft.companyName,
-                  companies: draft.selectedCompanies.map((item) => ({
-                    companyCode: item.code,
-                    companyName: item.name,
-                  })),
-                  visibilityScope: draft.visibilityScope,
-                  departmentCode: draft.departmentCode ?? 0,
-                  departmentName: draft.departmentName,
-                } as Policy)}
-              </div>
-            </div>
-            <div className="rounded-md border border-slate-200 p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Visibility</div>
-              <div className="mt-1 font-semibold text-slate-900">
-                {draft.visibilityScope === "general" ? "General" : "Department-specific"}
-              </div>
-            </div>
-            <div className="rounded-md border border-slate-200 p-4">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Process</div>
-              <div className="mt-1 font-semibold text-slate-900">{draft.processName || "—"}</div>
-              {draft.subProcesses.length > 0 && (
-                <div className="mt-2 text-xs text-slate-500">
-                  Sub-processes: {draft.subProcesses.map((item) => item.name).join(", ")}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {draft.sections.map((section) => (
-              <div key={section.id} className="rounded-md border border-slate-200 p-4">
-                <h3 className="mb-2 font-semibold text-slate-900">{section.title}</h3>
-                <div
-                  className="policy-content text-sm text-slate-700"
-                  dangerouslySetInnerHTML={{ __html: section.content }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={handleSave} disabled={isSaving}>
-              <Save className="h-4 w-4" />
-              {isSaving ? "Saving..." : "Save Draft"}
-            </Button>
-            <Button type="button" onClick={handleSubmit} disabled={isSaving}>
-              <Send className="h-4 w-4" />
-              {isSaving ? "Submitting..." : "Submit for Approval"}
-            </Button>
-
-            {savedPolicy?.id && (
-              <>
-                <Button
-                  type="button"
-                  variant="blue"
-                  onClick={async () => {
-                    try {
-                      await downloadPolicyPdf(savedPolicy);
-                      toast.success("PDF downloaded");
-                    } catch {
-                      toast.error("Failed to generate PDF");
-                    }
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                  Download as PDF
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    openPolicyInBrowser(savedPolicy);
-                    toast.info("Policy opened in new tab (copy disabled)");
-                  }}
-                >
-                  <Eye className="h-4 w-4" />
-                  View on Browser
-                </Button>
-              </>
-            )}
           </div>
         </div>
       )}

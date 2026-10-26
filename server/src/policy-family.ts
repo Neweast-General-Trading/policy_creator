@@ -70,6 +70,17 @@ export function deactivatePolicyRecord(
   };
 }
 
+export function activatePolicyRecord(policy: StoredPolicy): StoredPolicy {
+  const now = new Date().toISOString();
+  return {
+    ...policy,
+    isActive: true,
+    deactivatedAt: undefined,
+    deactivatedReason: undefined,
+    updatedAt: now,
+  };
+}
+
 export function canCreateNewVersionFrom(source: StoredPolicy) {
   return source.status === "published";
 }
@@ -77,6 +88,15 @@ export function canCreateNewVersionFrom(source: StoredPolicy) {
 export async function canDeactivatePolicy(policy: StoredPolicy, email: string) {
   if (policy.status !== "published") return false;
   if (policy.isActive === false) return false;
+  const normalized = normalizeEmail(email);
+  if (!normalized) return false;
+  if (normalizeEmail(policy.createdByEmail) === normalized) return true;
+  return canManageApprovalSetup(normalized);
+}
+
+export async function canActivatePolicy(policy: StoredPolicy, email: string) {
+  if (policy.status !== "published") return false;
+  if (policy.isActive !== false) return false;
   const normalized = normalizeEmail(email);
   if (!normalized) return false;
   if (normalizeEmail(policy.createdByEmail) === normalized) return true;

@@ -56,7 +56,7 @@ export default function CreateTemplateForm({
     if (!trimmed) return;
     setSections((current) => [
       ...current,
-      { id: generateId(), title: trimmed, content: "<p></p>" },
+      { id: generateId(), title: trimmed, content: "<p></p>", businessRules: [""], applyToApplications: [] },
     ]);
   };
 
@@ -206,6 +206,20 @@ export default function CreateTemplateForm({
             onContentChange={(id, content) => {
               setSections((current) =>
                 current.map((section) => (section.id === id ? { ...section, content } : section)),
+              );
+            }}
+            onBusinessRulesChange={(id, businessRules) => {
+              setSections((current) =>
+                current.map((section) =>
+                  section.id === id ? { ...section, businessRules } : section,
+                ),
+              );
+            }}
+            onApplyToChange={(id, applyToApplications) => {
+              setSections((current) =>
+                current.map((section) =>
+                  section.id === id ? { ...section, applyToApplications } : section,
+                ),
               );
             }}
           />

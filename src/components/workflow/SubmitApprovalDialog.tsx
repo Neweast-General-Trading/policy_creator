@@ -218,19 +218,21 @@ export default function SubmitApprovalDialog({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          <SelectField
-            label="Your department approvals"
-            value={submitterLevelMode}
-            onChange={(event) =>
-              setSubmitterLevelMode(event.target.value as SubmitterLevelMode)
-            }
-          >
-            {SUBMITTER_LEVEL_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
+          {previewQuery.data?.guruOnly ? null : (
+            <SelectField
+              label="Your department approvals"
+              value={submitterLevelMode}
+              onChange={(event) =>
+                setSubmitterLevelMode(event.target.value as SubmitterLevelMode)
+              }
+            >
+              {SUBMITTER_LEVEL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectField>
+          )}
 
           {previewQuery.isLoading ? (
             <div className="rounded-lg border border-dashed p-6 text-sm text-slate-500">
@@ -248,6 +250,7 @@ export default function SubmitApprovalDialog({
             </div>
           )}
 
+          {previewQuery.data?.guruOnly ? null : (
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
               <UserPlus className="h-4 w-4 text-red-600" />
@@ -351,6 +354,7 @@ export default function SubmitApprovalDialog({
               </div>
             )}
           </div>
+          )}
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-6 py-4 sm:flex-row sm:justify-end">

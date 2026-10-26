@@ -131,7 +131,14 @@ export interface StoredPolicy {
   processCode?: string;
   processName?: string;
   subProcesses?: PolicySubProcessLink[];
-  sections: Array<{ id: string; title: string; content: string }>;
+  businessRole?: string;
+  sections: Array<{
+    id: string;
+    title: string;
+    content: string;
+    businessRules?: string[];
+    applyToApplications?: Array<{ id: string; name: string }>;
+  }>;
   version: number;
   status: PolicyStatus;
   createdByEmail: string;

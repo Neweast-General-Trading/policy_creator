@@ -6,6 +6,8 @@ export function buildSectionsFromTemplate(template: Pick<PolicyTemplate, "sectio
     id: generateId(),
     title: section.title,
     content: section.content || "<p></p>",
+    businessRules: section.businessRules ?? [""],
+    applyToApplications: section.applyToApplications ?? [],
   }));
 }
 

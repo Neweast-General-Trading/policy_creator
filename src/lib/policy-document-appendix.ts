@@ -16,11 +16,13 @@ function escapeHtml(value: string) {
 
 export function formatDocumentDate(date?: string) {
   if (!date) return "—";
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "—";
   return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
-    month: "2-digit",
+    month: "short",
     year: "numeric",
-  }).format(new Date(date));
+  }).format(parsed);
 }
 
 export function getApprovalColumns(policy: Policy): ApprovalColumn[] {

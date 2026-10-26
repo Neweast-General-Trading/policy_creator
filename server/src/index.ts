@@ -12,6 +12,8 @@ import {
 import { canDeleteAnyPolicy, canDeletePolicy } from "./policy-delete-access.js";
 import { normalizePolicyCompanies } from "./policy-companies.js";
 import {
+  activatePolicyRecord,
+  canActivatePolicy,
   canCreateNewVersionFrom,
   canDeactivatePolicy,
   clonePolicyForNewVersion,
@@ -42,6 +44,11 @@ import { notifyPoliciesOnApprovalSetupChange } from "./approval-setup-change.js"
 import { normalizeSetupCompanies } from "./approval-setup-companies.js";
 import type { PolicyApprovalSetup, SubmitterLevelMode } from "./approval-setup-types.js";
 import { fetchDepartments, resolveCompaniesForUser } from "./hana.js";
+import {
+  catalogCompaniesAsRows,
+  isBusinessItCreator,
+  mergeCompanyRows,
+} from "./business-it-creator.js";
 import {
   deletePolicy,
   ensurePolicyStore,
@@ -93,6 +100,7 @@ import {
   type ViewerContext,
 } from "./policy-access.js";
 import {
+  listApplications,
   listProcessFunctionsForDepartment,
   listProcessesForFunction,
   listSubProcessesForProcess,
@@ -132,6 +140,16 @@ function parseSubProcesses(value: unknown) {
     .map((item) => ({
       id: String(item?.id ?? "").trim(),
       code: String(item?.code ?? "").trim(),
+      name: String(item?.name ?? "").trim(),
+    }))
+    .filter((item) => item.id && item.name);
+}
+
+function parseApplyToApplications(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => ({
+      id: String(item?.id ?? "").trim(),
       name: String(item?.name ?? "").trim(),
     }))
     .filter((item) => item.id && item.name);
@@ -448,10 +466,11 @@ app.use("/api", requireAuth);
 app.get("/api/access", async (req, res) => {
   try {
     const email = req.user?.email?.trim() ?? "";
-    const [policyCreator, policyViewer, canManageIt] = await Promise.all([
+    const [policyCreator, policyViewer, canManageIt, canCreateForAnyScope] = await Promise.all([
       hasPolicyCreatorMenuAccess(email),
       hasPolicyViewerPortalAccess(email),
       canManageApprovalSetup(email),
+      isBusinessItCreator(email),
     ]);
 
     res.json({
@@ -459,6 +478,8 @@ app.get("/api/access", async (req, res) => {
       policyViewer,
       canDeleteAnyPolicy: canDeleteAnyPolicy(email),
       canDeactivateAnyPolicy: canManageIt,
+      canCreateForAnyScope,
+      canEditAnyPolicy: canCreateForAnyScope,
       authSource: req.user?.authSource ?? null,
     });
   } catch (error) {
@@ -481,8 +502,12 @@ app.get("/api/companies", async (req, res) => {
     ];
 
     const { companies } = await resolveCompaniesForUser(candidates);
+    const email = req.user?.email?.trim() ?? "";
+    const result = (await isBusinessItCreator(email))
+      ? mergeCompanyRows(companies, catalogCompaniesAsRows())
+      : companies;
     res.json({
-      result: companies.map((row) => ({
+      result: result.map((row) => ({
         USER_ID: row.USER_ID,
         USER_NAME: row.USER_NAME,
         BRANCH: row.BRANCH,
@@ -539,6 +564,23 @@ app.get("/api/bpm/processes", async (req, res) => {
         name: process.processName || process.name,
       })),
     });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
+  }
+});
+
+app.get("/api/bpm/applications", async (_req, res) => {
+  try {
+    const applications = await listApplications();
+    res.json(
+      applications.map((item) => ({
+        id: item.id,
+        name: item.name,
+        vendor: item.vendor,
+        category: item.category,
+      })),
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: message });
@@ -624,7 +666,11 @@ app.post("/api/policies/approval-preview", async (req, res) => {
       departmentName,
     );
 
-    res.json({ steps, defaultSubmitterLevelMode });
+    res.json({
+      steps,
+      defaultSubmitterLevelMode,
+      guruOnly: await isBusinessItCreator(getUserEmail(req)),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ error: message });
@@ -1049,6 +1095,7 @@ app.post("/api/policies", async (req, res) => {
       departmentName,
       sections,
       version,
+      businessRole,
     } = req.body ?? {};
     const bpmFields = applyBpmFields(req.body ?? {});
 
@@ -1091,6 +1138,7 @@ app.post("/api/policies", async (req, res) => {
       departmentCode: Number(departmentCode),
       departmentName: String(departmentName),
       ...bpmFields,
+      businessRole: typeof businessRole === "string" ? businessRole.trim() : "",
       sections,
       version: Number(version ?? 1),
       status: "draft",
@@ -1118,7 +1166,7 @@ app.put("/api/policies/:id", async (req, res) => {
       res.status(404).json({ error: "Policy not found" });
       return;
     }
-    if (existing === undefined || !canUserEditPolicy(existing, getUserEmail(req))) {
+    if (existing === undefined || !(await canUserEditPolicy(existing, getUserEmail(req)))) {
       res.status(403).json({ error: "You cannot edit this policy in its current state" });
       return;
     }
@@ -1133,6 +1181,7 @@ app.put("/api/policies/:id", async (req, res) => {
       departmentName,
       sections,
       version,
+      businessRole,
     } = req.body ?? {};
     const bpmFields = applyBpmFields(req.body ?? {}, existing);
 
@@ -1154,12 +1203,16 @@ app.put("/api/policies/:id", async (req, res) => {
       companyName: existing.companyName,
     };
 
+    const nextBusinessRole =
+      typeof businessRole === "string" ? businessRole.trim() : existing.businessRole ?? "";
+
     const nextVersion = Number(version ?? existing.version);
     const isVersionDraft = Boolean(existing.parentPolicyId) && existing.status === "draft";
     const policy: StoredPolicy = isVersionDraft
       ? {
           ...existing,
           sections: sections ?? existing.sections,
+          businessRole: nextBusinessRole,
           updatedAt: new Date().toISOString(),
         }
       : {
@@ -1177,6 +1230,7 @@ app.put("/api/policies/:id", async (req, res) => {
           departmentCode: Number(departmentCode ?? existing.departmentCode),
           departmentName: String(departmentName ?? existing.departmentName),
           ...bpmFields,
+          businessRole: nextBusinessRole,
           sections: sections ?? existing.sections,
           version: nextVersion,
           updatedAt: new Date().toISOString(),
@@ -1434,6 +1488,44 @@ app.post("/api/policies/:id/deactivate", async (req, res) => {
     }
 
     const updated = deactivatePolicyRecord(existing, "manual");
+    await savePolicy(updated);
+    res.json(mapPolicy(updated));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
+  }
+});
+
+app.post("/api/policies/:id/activate", async (req, res) => {
+  try {
+    const email = getUserEmail(req);
+    const existing = await getAccessiblePolicy(req.params.id, email);
+    if (existing === null) {
+      res.status(404).json({ error: "Policy not found" });
+      return;
+    }
+    if (existing === undefined) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+    if (!(await canActivatePolicy(existing, email))) {
+      res.status(403).json({
+        error: "Only the policy owner or IT can activate a published inactive policy",
+      });
+      return;
+    }
+
+    const familyId = resolvePolicyFamilyId(existing);
+    const siblings = await listPolicies();
+    for (const sibling of siblings) {
+      if (sibling.id === existing.id) continue;
+      if (resolvePolicyFamilyId(sibling) !== familyId) continue;
+      if (sibling.status === "published" && sibling.isActive !== false) {
+        await savePolicy(deactivatePolicyRecord(sibling, "superseded"));
+      }
+    }
+
+    const updated = activatePolicyRecord(existing);
     await savePolicy(updated);
     res.json(mapPolicy(updated));
   } catch (error) {
@@ -1720,10 +1812,14 @@ app.post("/api/templates", async (req, res) => {
       description: String(description ?? "").trim(),
       departmentCode: Number(departmentCode),
       departmentName: String(departmentName).trim(),
-      sections: sections.map((section: { id?: string; title: string; content?: string }) => ({
+      sections: sections.map((section: { id?: string; title: string; content?: string; businessRules?: string[]; applyToApplications?: unknown }) => ({
         id: section.id ?? randomUUID(),
         title: String(section.title).trim(),
         content: String(section.content ?? "<p></p>"),
+        businessRules: Array.isArray(section.businessRules)
+          ? section.businessRules.map((rule) => String(rule ?? "").trim()).filter(Boolean)
+          : [],
+        applyToApplications: parseApplyToApplications(section.applyToApplications),
       })),
       source: source === "word" ? "word" : "manual",
       createdByEmail: getUserEmail(req),
@@ -1762,10 +1858,14 @@ app.put("/api/templates/:id", async (req, res) => {
       departmentCode: Number(departmentCode ?? existing.departmentCode),
       departmentName: String(departmentName ?? existing.departmentName).trim(),
       sections: Array.isArray(sections)
-        ? sections.map((section: { id?: string; title: string; content?: string }) => ({
+        ? sections.map((section: { id?: string; title: string; content?: string; businessRules?: string[]; applyToApplications?: unknown }) => ({
             id: section.id ?? randomUUID(),
             title: String(section.title).trim(),
             content: String(section.content ?? "<p></p>"),
+            businessRules: Array.isArray(section.businessRules)
+              ? section.businessRules.map((rule) => String(rule ?? "").trim()).filter(Boolean)
+              : [],
+            applyToApplications: parseApplyToApplications(section.applyToApplications),
           }))
         : existing.sections,
       source: source === "word" ? "word" : existing.source,

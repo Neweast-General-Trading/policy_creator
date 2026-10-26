@@ -1,8 +1,10 @@
 import { FileText } from "lucide-react";
 import RichTextEditor from "@/components/editor/RichTextEditor";
+import TopicBusinessRules from "@/components/wizard/TopicBusinessRules";
 import { Label } from "@/components/ui/label";
 import { hasSectionContent } from "@/lib/draft-storage";
-import type { PolicySection } from "@/lib/types";
+import { sectionHasBusinessRules } from "@/lib/business-rules";
+import type { PolicyApplicationLink, PolicySection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface SectionContentEditorProps {
@@ -10,6 +12,8 @@ interface SectionContentEditorProps {
   activeIndex: number;
   onSelect: (index: number) => void;
   onContentChange: (sectionId: string, content: string) => void;
+  onBusinessRulesChange: (sectionId: string, rules: string[]) => void;
+  onApplyToChange?: (sectionId: string, applications: PolicyApplicationLink[]) => void;
   topicProgress?: { completed: number; total: number };
 }
 
@@ -18,6 +22,8 @@ export default function SectionContentEditor({
   activeIndex,
   onSelect,
   onContentChange,
+  onBusinessRulesChange,
+  onApplyToChange,
   topicProgress,
 }: SectionContentEditorProps) {
   const activeSection = sections[activeIndex];
@@ -31,7 +37,7 @@ export default function SectionContentEditor({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200">
+    <div className="overflow-visible rounded-lg border border-slate-200">
       <div className="flex min-h-[480px] flex-col md:flex-row">
         <aside className="border-b border-slate-200 bg-slate-50 md:w-72 md:shrink-0 md:border-b-0 md:border-r">
           <div className="border-b border-slate-200 px-4 py-3">
@@ -39,7 +45,7 @@ export default function SectionContentEditor({
               Topics
             </p>
             <p className="mt-1 text-sm text-slate-600">
-              Select a topic and write its content
+              Select a topic, write its content, then add business rules
             </p>
             {topicProgress && (
               <div className="mt-3">
@@ -64,7 +70,8 @@ export default function SectionContentEditor({
             <ul className="space-y-1">
               {sections.map((section, index) => {
                 const isActive = index === activeIndex;
-                const isDone = hasSectionContent(section.content);
+                const isDone =
+                  hasSectionContent(section.content) && sectionHasBusinessRules(section);
 
                 return (
                   <li key={section.id}>
@@ -95,7 +102,7 @@ export default function SectionContentEditor({
                               isDone ? "text-emerald-600" : "text-slate-400",
                             )}
                           >
-                            {isDone ? "Content added" : "Empty"}
+                            {isDone ? "Content & rules added" : "Incomplete"}
                           </span>
                         )}
                       </span>
@@ -117,7 +124,13 @@ export default function SectionContentEditor({
                 key={activeSection.id}
                 value={activeSection.content}
                 onChange={(content) => onContentChange(activeSection.id, content)}
-                minHeight="360px"
+                minHeight="280px"
+              />
+              <TopicBusinessRules
+                rules={activeSection.businessRules ?? [""]}
+                onChange={(rules) => onBusinessRulesChange(activeSection.id, rules)}
+                applyTo={activeSection.applyToApplications ?? []}
+                onApplyToChange={(applications) => onApplyToChange?.(activeSection.id, applications)}
               />
             </div>
           ) : null}

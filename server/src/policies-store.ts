@@ -30,7 +30,21 @@ function migratePolicy(raw: Partial<StoredPolicy> & { id: string }): StoredPolic
     deactivatedReason: raw.deactivatedReason,
     departmentCode: Number(raw.departmentCode ?? 0),
     departmentName: raw.departmentName ?? "",
-    sections: raw.sections ?? [],
+    businessRole: raw.businessRole ?? "",
+    sections: (raw.sections ?? []).map((section) => ({
+      ...section,
+      businessRules: Array.isArray(section.businessRules)
+        ? section.businessRules.map((rule) => String(rule ?? "").trim()).filter(Boolean)
+        : [],
+      applyToApplications: Array.isArray(section.applyToApplications)
+        ? section.applyToApplications
+            .map((item) => ({
+              id: String(item?.id ?? "").trim(),
+              name: String(item?.name ?? "").trim(),
+            }))
+            .filter((item) => item.id && item.name)
+        : [],
+    })),
     version: Number(raw.version ?? 1),
     status: raw.status ?? "draft",
     createdByEmail: raw.createdByEmail ?? "",

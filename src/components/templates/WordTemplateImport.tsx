@@ -44,6 +44,7 @@ export default function WordTemplateImport({ onParsed }: WordTemplateImportProps
           id: generateId(),
           title: section.title,
           content: section.content || "<p></p>",
+          businessRules: [""],
         })),
         file.name,
       );

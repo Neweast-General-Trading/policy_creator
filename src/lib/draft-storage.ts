@@ -36,5 +36,9 @@ export function hasSectionContent(content: string) {
 }
 
 export function countCompletedTopics(sections: PolicyDraft["sections"]) {
-  return sections.filter((section) => hasSectionContent(section.content)).length;
+  return sections.filter(
+    (section) =>
+      hasSectionContent(section.content) &&
+      (section.businessRules ?? []).some((rule) => rule.trim().length > 0),
+  ).length;
 }

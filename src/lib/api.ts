@@ -139,6 +139,8 @@ export function fetchAppAccess() {
     policyViewer: boolean;
     canDeleteAnyPolicy?: boolean;
     canDeactivateAnyPolicy?: boolean;
+    canCreateForAnyScope?: boolean;
+    canEditAnyPolicy?: boolean;
     authSource: "intranet" | "microsoft" | null;
   }>("/access");
 }
@@ -252,6 +254,7 @@ export function savePolicyApi(
     processCode?: string;
     processName?: string;
     subProcesses?: import("./types").PolicySubProcessLink[];
+    businessRole?: string;
     sections: import("./types").PolicySection[];
     version: number;
   },
@@ -270,6 +273,7 @@ export function savePolicyApi(
     processCode: policy.processCode,
     processName: policy.processName,
     subProcesses: policy.subProcesses ?? [],
+    businessRole: policy.businessRole ?? "",
     sections: policy.sections,
     version: policy.version,
   };
@@ -335,6 +339,10 @@ export function fetchBpmProcesses(companyCode: string, departmentName: string) {
     processFunction: { id: string; code: string; name: string } | null;
     processes: import("./types").BpmProcessOption[];
   }>(`/bpm/processes?${params.toString()}`);
+}
+
+export function fetchBpmApplications() {
+  return request<import("./types").PolicyApplicationLink[]>("/bpm/applications");
 }
 
 export function fetchBpmSubProcesses(processId: string) {
@@ -424,6 +432,7 @@ export function previewApprovalChain(payload: {
   return request<{
     steps: import("./types").ApprovalStep[];
     defaultSubmitterLevelMode: import("./types").SubmitterLevelMode;
+    guruOnly?: boolean;
   }>("/policies/approval-preview", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -496,6 +505,12 @@ export function newVersionPolicyApi(id: string) {
 
 export function deactivatePolicyApi(id: string) {
   return request<import("./types").Policy>(`/policies/${id}/deactivate`, {
+    method: "POST",
+  });
+}
+
+export function activatePolicyApi(id: string) {
+  return request<import("./types").Policy>(`/policies/${id}/activate`, {
     method: "POST",
   });
 }
